@@ -5,6 +5,7 @@ import os
 import datetime
 from flask import Flask, jsonify
 from flask_sqlalchemy import SQLAlchemy
+from flask_migrate import Migrate
 
 
 # instantiate the app
@@ -16,6 +17,7 @@ app.config.from_object(app_settings)
 
 # instantiate the db
 db = SQLAlchemy(app)
+migrate = Migrate()
 
 
 def create_app():
@@ -29,6 +31,7 @@ def create_app():
 
     # set up extensions
     db.init_app(app)
+    migrate.init_app(app, db)
 
     # register blueprints
     from project.api.views.items import items_blueprint

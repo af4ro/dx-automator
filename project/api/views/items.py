@@ -2,7 +2,7 @@ import copy
 
 from flask import Blueprint, jsonify, request
 
-from project.api.models import Item
+from project.api.models import Item, User
 from project import db
 
 from sqlalchemy import exc
@@ -31,6 +31,8 @@ def add_item():
     subject = post_data.get('subject')
     url = post_data.get('url')
     requestor = post_data.get('requestor')
+    maintainer = post_data.get('maintainer')
+
 
     if not url:
         response_object = {
@@ -59,6 +61,20 @@ def add_item():
             item_id = db.session.add(Item(subject=subject, url=url, requestor=requestor))
             db.session.commit()
             item = Item.query.filter_by(url=url).first()
+            if maintainer:
+                try:
+                    user = User.query.filter_by(github_username=maintainer).first()
+                    item.user = user.id
+                    db.session.commit()
+                    github_username = maintainer
+                except Exception as e:
+                    response_object = {
+                        'status': 'fail',
+                        'message': 'Invalid maintainer.'
+                    }
+                    return jsonify(response_object), 400
+            else:
+                github_username = None
             response_object = {
                 'status': 'success',
                 'message': '{} was added!'.format(subject),
@@ -66,6 +82,7 @@ def add_item():
                     'id': item.id,
                     'subject': item.subject,
                     'status' : item.status,
+                    'user' : github_username,
                     'url': item.url,
                     'requestor': item.requestor,
                     'maintainer': item.maintainer,
@@ -99,6 +116,12 @@ def get_single_item(item_id):
     }
     try:
         item = Item.query.filter_by(id=int(item_id)).first()
+        try:
+            print("User ID: {0}: ".format(item.user))
+        except Exception as e:
+            print(e)
+        github_username = None
+
         if not item:
             return jsonify(response_object), 404
         else:
@@ -108,6 +131,7 @@ def get_single_item(item_id):
                     'id': item.id,
                     'subject': item.subject,
                     'status' : item.status,
+                    'user' : github_username,
                     'url': item.url,
                     'requestor': item.requestor,
                     'maintainer': item.maintainer,
@@ -117,7 +141,7 @@ def get_single_item(item_id):
                 }
             }
             return jsonify(response_object), 200
-    except ValueError:
+    except (ValueError, AttributeError):
         return jsonify(response_object), 404
 
 
@@ -127,10 +151,15 @@ def get_all_items():
     items = Item.query.all()
     items_list = []
     for item in items:
+        if item.user:
+            github_username = item.user.github_username
+        else:
+            github_username = None
         item_object = {
             'id': item.id,
             'subject': item.subject,
             'status' : item.status,
+            'item' : github_username,
             'url': item.url,
             'requestor': item.requestor,
             'maintainer': item.maintainer,
@@ -170,6 +199,7 @@ def edit_single_item(item_id):
         else:
             subject = post_data.get('subject')
             status = post_data.get('status')
+            user = post_data.get('user')
             url = post_data.get('url')
             requestor = post_data.get('requestor')
             maintainer = post_data.get('maintainer')
@@ -182,6 +212,9 @@ def edit_single_item(item_id):
 
             if status:
                 item.status = status
+
+            if user:
+                item.user = user
             
             if requestor:
                 item.requestor = requestor
@@ -198,6 +231,7 @@ def edit_single_item(item_id):
                         'id': item.id,
                         'subject': item.subject,
                         'status' : item.status,
+                        'user' : item.user,
                         'url': item.url,
                         'requestor': item.requestor,
                         'maintainer': item.maintainer,
@@ -215,6 +249,7 @@ def edit_single_item(item_id):
                         'id': item.id,
                         'subject': item.subject,
                         'status' : item.status,
+                        'user' : item.user,
                         'url': item.url,
                         'requestor': item.requestor,
                         'maintainer': item.maintainer,

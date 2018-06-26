@@ -1,12 +1,9 @@
-# project/tests/test_items.py
-
-
 import json
 import unittest
 
 from project.tests.base import BaseTestCase
 from project import db
-from project.api.models import Item, ItemStatus
+from project.api.models import Item, ItemStatus, User
 
 url_issue_1 = 'https://github.com/SendGridDX/testing-playground/issues/1'
 url_issue_2 = 'https://github.com/SendGridDX/testing-playground/issues/2'
@@ -18,6 +15,13 @@ def add_item(subject, url, requestor):
     db.session.commit()
     return item
 
+def add_user(github_username, email_address, twitter_username):
+    user = User(github_username=github_username,
+                email_address=email_address,
+                twitter_username=twitter_username)
+    db.session.add(user)
+    db.session.commit()
+    return user
 
 class TestItemService(BaseTestCase):
     """Tests for the Items Service."""
@@ -275,3 +279,36 @@ class TestItemService(BaseTestCase):
                     url_issue_1,
                     'a_github_user')
         self.assertEqual(True, Item.items_equal(item_1, item_3))
+
+    def test_adding_a_valid_user_to_an_item(self):
+        """Ensure we can add a user to an item."""
+        user = add_user('thinkingserious', 'elmer@thinkingserious.com', 'thinkingserious')
+        subject = 'A editable item'
+        url = url_issue_1
+        with self.client:
+            response = self.client.post(
+                            '/items',
+                            data=json.dumps(dict(
+                                subject=subject,
+                                url=url,
+                                requestor='a_github_user',
+                                maintainer=user.github_username
+                            )),
+                            content_type='application/json',
+                        )
+            data = json.loads(response.data.decode())
+            print(data['message'])
+            self.assertEqual(response.status_code, 201)
+            self.assertIn('{0} was added!'.format(subject), data['message'])
+            self.assertIn('success', data['status'])
+            response = self.client.get('/items/{0}'.format(data['data']['id']))
+            data = json.loads(response.data.decode())
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual('thinkingserious', data['data']['maintainer'])
+
+    # Test edit
+
+    # def test_adding_an_invalid_user_to_an_item(self):
+        """Ensure we can't add an invalid user to an item."""     
+
+    # def test_removing_a_user_from_an_item(self):

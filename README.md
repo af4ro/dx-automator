@@ -44,6 +44,7 @@ cd dx-automator
 Create the docker machine
 ```bash
 docker-machine create -d virtualbox dx
+docker-machine env dx
 eval "$(docker-machine env dx)"
 ```
 
@@ -61,8 +62,8 @@ curl http://$DX_IP:5001/ping
 
 Set up the database
 ```bash
-docker-compose run -f docker-compose-dev.yml dx-service python3 manage.py recreate_db
-docker-compose run -f docker-compose-dev.yml dx-service python3 manage.py seed_db
+docker-compose -f docker-compose-dev.yml run dx-service python3 manage.py recreate_db
+docker-compose -f docker-compose-dev.yml run dx-service python3 manage.py seed_db
 ```
 
 Validate that the items are seeded into the database
@@ -74,6 +75,11 @@ Run the tests to make sure everything is working!
 ```bash
 docker-compose -f docker-compose-dev.yml run dx-service python3 manage.py test
 ```
+
+Database Migrations
+docker-compose -f docker-compose-dev.yml run dx-service python manage.py db migrate
+
+docker-compose -f docker-compose-dev.yml run dx-service python manage.py db upgrade
 
 ### Your Server or On your machine
 

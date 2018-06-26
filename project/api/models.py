@@ -42,19 +42,23 @@ class Item(db.Model):
     status = db.Column(db.Integer, 
                        db.ForeignKey('item_status.id'),
                        nullable=False)
+    user = db.Column(db.Integer, 
+                     db.ForeignKey('users.id'),
+                     nullable=True)
     created_at = db.Column(db.DateTime, nullable=False)
     updated_at = db.Column(db.DateTime, nullable=False, onupdate=datetime.datetime.now)
     due_date = db.Column(db.DateTime, nullable=True)
     requestor = db.Column(db.String(), nullable=False)
     maintainer = db.Column(db.String(), nullable=True)
 
-    def __init__(self, subject, url, requestor, due_date=None):
+    def __init__(self, subject, url, requestor, due_date=None, user=None):
         self.subject = subject
         self.url = url
         self.created_at = datetime.datetime.utcnow()
         self.updated_at = datetime.datetime.utcnow()
         self.requestor = requestor
         self.due_date = due_date
+        self.user = user
         self.status = 1
     
     # Determine if two Items are equal
@@ -77,7 +81,7 @@ class Item(db.Model):
 class User(db.Model):
     __tablename__ = "users"
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    github_username = db.Column(db.String(128), nullable=False)
+    github_username = db.Column(db.String(128), unique=True, nullable=False)
     email_address = db.Column(db.String(128), nullable=False)
     twitter_username = db.Column(db.String(128), nullable=True)
     created_at = db.Column(db.DateTime, nullable=False)
